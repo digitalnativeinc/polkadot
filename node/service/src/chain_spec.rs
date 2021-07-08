@@ -141,9 +141,9 @@ pub fn rococo_config() -> Result<RococoChainSpec, String> {
 	RococoChainSpec::from_json_bytes(&include_bytes!("../res/rococo.json")[..])
 }
 
-// pub fn opportunity_config() -> Result<RococoChainSpec, String> {
-// 	RococoChainSpec::from_json_bytes(&include_bytes!("../res/rococo-opportunity.json")[..])
-// }
+pub fn opportunity_config() -> Result<RococoChainSpec, String> {
+	RococoChainSpec::from_json_bytes(&include_bytes!("../res/rococo-opportunity.json")[..])
+}
 
 /// This is a temporary testnet that uses the same runtime as rococo.
 pub fn wococo_config() -> Result<RococoChainSpec, String> {
