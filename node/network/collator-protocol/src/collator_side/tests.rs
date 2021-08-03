@@ -25,18 +25,17 @@ use sp_core::{crypto::Pair, Decode};
 use sp_keyring::Sr25519Keyring;
 use sp_runtime::traits::AppVerify;
 
-use polkadot_node_network_protocol::{
-    our_view,
-    view,
-    request_response::request::IncomingRequest,
-};
-use polkadot_node_subsystem_util::TimeoutExt;
-use polkadot_primitives::v1::{AuthorityDiscoveryId, CandidateDescriptor, CollatorPair, GroupRotationInfo, ScheduledCore, SessionIndex, SessionInfo, ValidatorId, ValidatorIndex};
+use polkadot_node_network_protocol::{our_view, request_response::request::IncomingRequest, view};
 use polkadot_node_primitives::BlockData;
+use polkadot_node_subsystem_util::TimeoutExt;
+use polkadot_primitives::v1::{
+    AuthorityDiscoveryId, CandidateDescriptor, CollatorPair, GroupRotationInfo, ScheduledCore,
+    SessionIndex, SessionInfo, ValidatorId, ValidatorIndex,
+};
 use polkadot_subsystem::{
     jaeger,
     messages::{RuntimeApiMessage, RuntimeApiRequest},
-    ActiveLeavesUpdate, ActivatedLeaf, LeafStatus,
+    ActivatedLeaf, ActiveLeavesUpdate, LeafStatus,
 };
 use polkadot_subsystem_testhelpers as test_helpers;
 
@@ -104,7 +103,9 @@ impl Default for TestState {
             .collect();
 
         let validator_groups = vec![vec![2, 0, 4], vec![3, 2, 4]]
-            .into_iter().map(|g| g.into_iter().map(ValidatorIndex).collect()).collect();
+            .into_iter()
+            .map(|g| g.into_iter().map(ValidatorIndex).collect())
+            .collect();
         let group_rotation_info = GroupRotationInfo {
             session_start_block: 0,
             group_rotation_frequency: 100,
@@ -151,7 +152,10 @@ impl TestState {
     }
 
     fn current_group_validator_peer_ids(&self) -> Vec<PeerId> {
-        self.current_group_validator_indices().iter().map(|i| self.validator_peer_id[i.0 as usize].clone()).collect()
+        self.current_group_validator_indices()
+            .iter()
+            .map(|i| self.validator_peer_id[i.0 as usize].clone())
+            .collect()
     }
 
     fn current_group_validator_authority_ids(&self) -> Vec<AuthorityDiscoveryId> {
@@ -165,7 +169,11 @@ impl TestState {
     ///
     /// If `merge_views == true` it means the subsystem will be informed that we are working on the old `relay_parent`
     /// and the new one.
-    async fn advance_to_new_round(&mut self, virtual_overseer: &mut VirtualOverseer, merge_views: bool) {
+    async fn advance_to_new_round(
+        &mut self,
+        virtual_overseer: &mut VirtualOverseer,
+        merge_views: bool,
+    ) {
         let old_relay_parent = self.relay_parent;
 
         while self.relay_parent == old_relay_parent {
@@ -180,8 +188,11 @@ impl TestState {
 
         overseer_send(
             virtual_overseer,
-            CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::OurViewChange(our_view)),
-        ).await;
+            CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::OurViewChange(
+                our_view,
+            )),
+        )
+        .await;
     }
 }
 
@@ -207,32 +218,38 @@ fn test_harness<T: Future<Output = VirtualOverseer>>(
     futures::pin_mut!(test_fut);
     futures::pin_mut!(subsystem);
 
-    executor::block_on(future::join(async move {
-        let mut overseer = test_fut.await;
-        overseer_signal(&mut overseer, OverseerSignal::Conclude).await;
-    }, subsystem)).1.unwrap();
+    executor::block_on(future::join(
+        async move {
+            let mut overseer = test_fut.await;
+            overseer_signal(&mut overseer, OverseerSignal::Conclude).await;
+        },
+        subsystem,
+    ))
+    .1
+    .unwrap();
 }
 
 const TIMEOUT: Duration = Duration::from_millis(100);
 
-async fn overseer_send(
-    overseer: &mut VirtualOverseer,
-    msg: CollatorProtocolMessage,
-) {
+async fn overseer_send(overseer: &mut VirtualOverseer, msg: CollatorProtocolMessage) {
     tracing::trace!(?msg, "sending message");
     overseer
         .send(FromOverseer::Communication { msg })
         .timeout(TIMEOUT)
         .await
-        .expect(&format!("{:?} is more than enough for sending messages.", TIMEOUT));
+        .expect(&format!(
+            "{:?} is more than enough for sending messages.",
+            TIMEOUT
+        ));
 }
 
-async fn overseer_recv(
-    overseer: &mut VirtualOverseer,
-) -> AllMessages {
+async fn overseer_recv(overseer: &mut VirtualOverseer) -> AllMessages {
     let msg = overseer_recv_with_timeout(overseer, TIMEOUT)
         .await
-        .expect(&format!("{:?} is more than enough to receive messages", TIMEOUT));
+        .expect(&format!(
+            "{:?} is more than enough to receive messages",
+            TIMEOUT
+        ));
 
     tracing::trace!(?msg, "received message");
 
@@ -244,21 +261,18 @@ async fn overseer_recv_with_timeout(
     timeout: Duration,
 ) -> Option<AllMessages> {
     tracing::trace!("waiting for message...");
-    overseer
-        .recv()
-        .timeout(timeout)
-        .await
+    overseer.recv().timeout(timeout).await
 }
 
-async fn overseer_signal(
-    overseer: &mut VirtualOverseer,
-    signal: OverseerSignal,
-) {
+async fn overseer_signal(overseer: &mut VirtualOverseer, signal: OverseerSignal) {
     overseer
         .send(FromOverseer::Signal(signal))
         .timeout(TIMEOUT)
         .await
-        .expect(&format!("{:?} is more than enough for sending signals.", TIMEOUT));
+        .expect(&format!(
+            "{:?} is more than enough for sending signals.",
+            TIMEOUT
+        ));
 }
 
 // Setup the system by sending the `CollateOn`, `ActiveLeaves` and `OurViewChange` messages.
@@ -266,7 +280,8 @@ async fn setup_system(virtual_overseer: &mut VirtualOverseer, test_state: &TestS
     overseer_send(
         virtual_overseer,
         CollatorProtocolMessage::CollateOn(test_state.para_id),
-    ).await;
+    )
+    .await;
 
     overseer_signal(
         virtual_overseer,
@@ -276,17 +291,20 @@ async fn setup_system(virtual_overseer: &mut VirtualOverseer, test_state: &TestS
                 number: 1,
                 status: LeafStatus::Fresh,
                 span: Arc::new(jaeger::Span::Disabled),
-            }].into(),
+            }]
+            .into(),
             deactivated: [][..].into(),
         }),
-    ).await;
+    )
+    .await;
 
     overseer_send(
         virtual_overseer,
-        CollatorProtocolMessage::NetworkBridgeUpdateV1(
-            NetworkBridgeEvent::OurViewChange(our_view![test_state.relay_parent]),
-        ),
-    ).await;
+        CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::OurViewChange(
+            our_view![test_state.relay_parent],
+        )),
+    )
+    .await;
 }
 
 /// Result of [`distribute_collation`]
@@ -314,12 +332,14 @@ async fn distribute_collation(
         relay_parent: test_state.relay_parent,
         pov_hash,
         ..Default::default()
-    }.build();
+    }
+    .build();
 
     overseer_send(
         virtual_overseer,
         CollatorProtocolMessage::DistributeCollation(candidate.clone(), pov_block.clone(), None),
-    ).await;
+    )
+    .await;
 
     // obtain the availability cores.
     assert_matches!(
@@ -356,18 +376,18 @@ async fn distribute_collation(
 
             AllMessages::RuntimeApi(RuntimeApiMessage::Request(
                 relay_parent,
-                RuntimeApiRequest::ValidatorGroups(tx)
+                RuntimeApiRequest::ValidatorGroups(tx),
             )) => {
                 assert_eq!(relay_parent, test_state.relay_parent);
                 tx.send(Ok((
                     test_state.session_info.validator_groups.clone(),
                     test_state.group_rotation_info.clone(),
-                ))).unwrap();
+                )))
+                .unwrap();
                 // This call is mandatory - we are done:
                 break;
             }
-            other =>
-                panic!("Unexpected message received: {:?}", other),
+            other => panic!("Unexpected message received: {:?}", other),
         }
     }
 
@@ -392,25 +412,26 @@ async fn distribute_collation(
 async fn connect_peer(
     virtual_overseer: &mut VirtualOverseer,
     peer: PeerId,
-    authority_id: Option<AuthorityDiscoveryId>
+    authority_id: Option<AuthorityDiscoveryId>,
 ) {
     overseer_send(
         virtual_overseer,
-        CollatorProtocolMessage::NetworkBridgeUpdateV1(
-            NetworkBridgeEvent::PeerConnected(
-                peer.clone(),
-                polkadot_node_network_protocol::ObservedRole::Authority,
-                authority_id,
-            ),
-        ),
-    ).await;
+        CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::PeerConnected(
+            peer.clone(),
+            polkadot_node_network_protocol::ObservedRole::Authority,
+            authority_id,
+        )),
+    )
+    .await;
 
     overseer_send(
         virtual_overseer,
-        CollatorProtocolMessage::NetworkBridgeUpdateV1(
-            NetworkBridgeEvent::PeerViewChange(peer, view![]),
-        ),
-    ).await;
+        CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::PeerViewChange(
+            peer,
+            view![],
+        )),
+    )
+    .await;
 }
 
 /// Disconnect a peer
@@ -418,7 +439,8 @@ async fn disconnect_peer(virtual_overseer: &mut VirtualOverseer, peer: PeerId) {
     overseer_send(
         virtual_overseer,
         CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::PeerDisconnected(peer)),
-    ).await;
+    )
+    .await;
 }
 
 /// Check that the next received message is a `Declare` message.
@@ -483,13 +505,19 @@ async fn expect_advertise_collation_msg(
 }
 
 /// Send a message that the given peer's view changed.
-async fn send_peer_view_change(virtual_overseer: &mut VirtualOverseer, peer: &PeerId, hashes: Vec<Hash>) {
+async fn send_peer_view_change(
+    virtual_overseer: &mut VirtualOverseer,
+    peer: &PeerId,
+    hashes: Vec<Hash>,
+) {
     overseer_send(
         virtual_overseer,
-        CollatorProtocolMessage::NetworkBridgeUpdateV1(
-            NetworkBridgeEvent::PeerViewChange(peer.clone(), View::new(hashes, 0)),
-        ),
-    ).await;
+        CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::PeerViewChange(
+            peer.clone(),
+            View::new(hashes, 0),
+        )),
+    )
+    .await;
 }
 
 #[test]
@@ -503,10 +531,13 @@ fn advertise_and_send_collation() {
 
         setup_system(&mut virtual_overseer, &test_state).await;
 
-        let DistributeCollation { candidate, pov_block } =
-            distribute_collation(&mut virtual_overseer, &test_state, true).await;
+        let DistributeCollation {
+            candidate,
+            pov_block,
+        } = distribute_collation(&mut virtual_overseer, &test_state, true).await;
 
-        for (val, peer) in test_state.current_group_validator_authority_ids()
+        for (val, peer) in test_state
+            .current_group_validator_authority_ids()
             .into_iter()
             .zip(test_state.current_group_validator_peer_ids())
         {
@@ -533,17 +564,16 @@ fn advertise_and_send_collation() {
         let (tx, rx) = oneshot::channel();
         overseer_send(
             &mut virtual_overseer,
-            CollatorProtocolMessage::CollationFetchingRequest(
-                IncomingRequest::new(
-                    peer,
-                    CollationFetchingRequest {
-                        relay_parent: test_state.relay_parent,
-                        para_id: test_state.para_id,
-                    },
-                    tx,
-                )
-            )
-        ).await;
+            CollatorProtocolMessage::CollationFetchingRequest(IncomingRequest::new(
+                peer,
+                CollationFetchingRequest {
+                    relay_parent: test_state.relay_parent,
+                    para_id: test_state.para_id,
+                },
+                tx,
+            )),
+        )
+        .await;
 
         assert_matches!(
             rx.await,
@@ -560,7 +590,9 @@ fn advertise_and_send_collation() {
         );
 
         let old_relay_parent = test_state.relay_parent;
-        test_state.advance_to_new_round(&mut virtual_overseer, false).await;
+        test_state
+            .advance_to_new_round(&mut virtual_overseer, false)
+            .await;
 
         let peer = test_state.validator_peer_id[2].clone();
 
@@ -568,37 +600,37 @@ fn advertise_and_send_collation() {
         let (tx, rx) = oneshot::channel();
         overseer_send(
             &mut virtual_overseer,
-            CollatorProtocolMessage::CollationFetchingRequest(
-                IncomingRequest::new(
-                    peer,
-                    CollationFetchingRequest {
-                        relay_parent: old_relay_parent,
-                        para_id: test_state.para_id,
-                    },
-                    tx,
-                )
-            )
-        ).await;
+            CollatorProtocolMessage::CollationFetchingRequest(IncomingRequest::new(
+                peer,
+                CollationFetchingRequest {
+                    relay_parent: old_relay_parent,
+                    para_id: test_state.para_id,
+                },
+                tx,
+            )),
+        )
+        .await;
         // Re-requesting collation should fail:
         assert_matches!(
             rx.await,
             Err(_) => {}
         );
 
-        assert!(overseer_recv_with_timeout(&mut virtual_overseer, TIMEOUT).await.is_none());
+        assert!(overseer_recv_with_timeout(&mut virtual_overseer, TIMEOUT)
+            .await
+            .is_none());
 
         distribute_collation(&mut virtual_overseer, &test_state, true).await;
 
         // Send info about peer's view.
         overseer_send(
             &mut virtual_overseer,
-            CollatorProtocolMessage::NetworkBridgeUpdateV1(
-                NetworkBridgeEvent::PeerViewChange(
-                    peer.clone(),
-                    view![test_state.relay_parent],
-                )
-            )
-        ).await;
+            CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::PeerViewChange(
+                peer.clone(),
+                view![test_state.relay_parent],
+            )),
+        )
+        .await;
 
         expect_advertise_collation_msg(&mut virtual_overseer, &peer, test_state.relay_parent).await;
         virtual_overseer
@@ -657,7 +689,8 @@ fn collations_are_only_advertised_to_validators_with_correct_view() {
 
         distribute_collation(&mut virtual_overseer, &test_state, true).await;
 
-        expect_advertise_collation_msg(&mut virtual_overseer, &peer2, test_state.relay_parent).await;
+        expect_advertise_collation_msg(&mut virtual_overseer, &peer2, test_state.relay_parent)
+            .await;
 
         // The other validator announces that it changed its view.
         send_peer_view_change(&mut virtual_overseer, &peer, vec![test_state.relay_parent]).await;
@@ -699,7 +732,9 @@ fn collate_on_two_different_relay_chain_blocks() {
         let old_relay_parent = test_state.relay_parent;
 
         // Advance to a new round, while informing the subsystem that the old and the new relay parent are active.
-        test_state.advance_to_new_round(&mut virtual_overseer, true).await;
+        test_state
+            .advance_to_new_round(&mut virtual_overseer, true)
+            .await;
 
         distribute_collation(&mut virtual_overseer, &test_state, true).await;
 
@@ -708,7 +743,8 @@ fn collate_on_two_different_relay_chain_blocks() {
 
         send_peer_view_change(&mut virtual_overseer, &peer2, vec![test_state.relay_parent]).await;
 
-        expect_advertise_collation_msg(&mut virtual_overseer, &peer2, test_state.relay_parent).await;
+        expect_advertise_collation_msg(&mut virtual_overseer, &peer2, test_state.relay_parent)
+            .await;
         virtual_overseer
     })
 }
@@ -728,7 +764,12 @@ fn validator_reconnect_does_not_advertise_a_second_time() {
         setup_system(&mut virtual_overseer, &test_state).await;
 
         // A validator connected to us
-        connect_peer(&mut virtual_overseer, peer.clone(), Some(validator_id.clone())).await;
+        connect_peer(
+            &mut virtual_overseer,
+            peer.clone(),
+            Some(validator_id.clone()),
+        )
+        .await;
         expect_declare_msg(&mut virtual_overseer, &test_state, &peer).await;
 
         distribute_collation(&mut virtual_overseer, &test_state, true).await;
@@ -743,7 +784,9 @@ fn validator_reconnect_does_not_advertise_a_second_time() {
 
         send_peer_view_change(&mut virtual_overseer, &peer, vec![test_state.relay_parent]).await;
 
-        assert!(overseer_recv_with_timeout(&mut virtual_overseer, TIMEOUT).await.is_none());
+        assert!(overseer_recv_with_timeout(&mut virtual_overseer, TIMEOUT)
+            .await
+            .is_none());
         virtual_overseer
     })
 }
@@ -769,17 +812,16 @@ fn collators_reject_declare_messages() {
 
         overseer_send(
             &mut virtual_overseer,
-            CollatorProtocolMessage::NetworkBridgeUpdateV1(
-                NetworkBridgeEvent::PeerMessage(
-                    peer.clone(),
-                    protocol_v1::CollatorProtocolMessage::Declare(
-                        collator_pair2.public(),
-                        ParaId::from(5),
-                        collator_pair2.sign(b"garbage"),
-                    ),
-                )
-            )
-        ).await;
+            CollatorProtocolMessage::NetworkBridgeUpdateV1(NetworkBridgeEvent::PeerMessage(
+                peer.clone(),
+                protocol_v1::CollatorProtocolMessage::Declare(
+                    collator_pair2.public(),
+                    ParaId::from(5),
+                    collator_pair2.sign(b"garbage"),
+                ),
+            )),
+        )
+        .await;
 
         assert_matches!(
             overseer_recv(&mut virtual_overseer).await,

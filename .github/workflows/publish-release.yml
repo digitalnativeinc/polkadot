@@ -1,0 +1,61 @@
+name: Publish release
+
+# permissions:
+#   contents: write
+#   actions: read
+#   metadata: read
+
+# Controls when the action will run.
+on:
+  push:
+    tags:
+      - "*.*.*"
+
+jobs:
+  on-success:
+    runs-on: ubuntu-20.04
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v2
+        with:
+          fetch-depth: 0
+
+      - name: Download artifact
+        uses: dawidd6/action-download-artifact@v2
+        with:
+          workflow: binary-build.yml
+
+      - name: Create checksums file
+        run: |
+          find . -type f -name "polkadot-*" -exec sha256sum {} \; >> SHA256CHECKSUMS
+          find . -type f -name "polkadot_runtime.compact.wasm" -exec sha256sum {} \; >> SHA256CHECKSUMS
+
+      - name: Build Changelog
+        id: build-changelog
+        uses: mikepenz/release-changelog-builder-action@v2.1.0
+        with:
+          configuration: ".github/release_notes_config.json"
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Set release tag
+        run: |
+          echo "RELEASE_VERSION=${GITHUB_REF#refs/*/}" >> $GITHUB_ENV
+
+      - uses: ncipollo/release-action@v1.8.6
+        id: release-step
+        with:
+          artifacts: "SHA256CHECKSUMS, polkadot-*/*"
+          allowUpdates: true
+          body: ${{ steps.build-changelog.outputs.changelog }}
+          token: ${{ secrets.BOT_GITHUB_TOKEN }}
+
+      - name: Internal Slack Notification
+        uses: bryannice/gitactions-slack-notification@2.0.0
+        env:
+          SLACK_INCOMING_WEBHOOK: ${{ secrets.SLACK_WEBHOOK }}
+          SLACK_MESSAGE: "Details: ${{ steps.release-step.outputs.html_url }}"
+          SLACK_TITLE: "New release in ${{ github.repository }} - ${{ env.RELEASE_VERSION }}"
+          SLACK_COLOR: "#008000"
+          SLACK_CHANNEL: "github-releases"
+          SLACK_USERNAME: "release-bot"
