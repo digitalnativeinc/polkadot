@@ -1186,7 +1186,15 @@ pub fn barocco_testnet_config() -> Result<RococoChainSpec, String> {
         "barocco_testnet",
         ChainType::Live,
         move || RococoGenesisExt {
-            runtime_genesis_config: rococo_staging_testnet_config_genesis(wasm_binary),
+            runtime_genesis_config: rococo_testnet_genesis(
+                wasm_binary,
+                vec![
+                    get_authority_keys_from_seed("Alice"),
+                    get_authority_keys_from_seed("Bob"),
+                ],
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                None,
+            ),
             session_length_in_blocks: Some(100),
         },
         boot_nodes,
