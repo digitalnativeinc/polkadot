@@ -22,12 +22,14 @@ jobs:
 
       - uses: nelonoel/branch-name@v1.0.1
 
+      - run: echo ${BRANCH_NAME}
+
       - name: Download artifact
         uses: dawidd6/action-download-artifact@v2
         with:
           github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
           workflow: binary-build.yml
-          branch: ${BRANCH_NAME}
+          branch: ${{ env.BRANCH_NAME }}
 
       - name: Create checksums file
         run: |
