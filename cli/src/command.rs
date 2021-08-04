@@ -108,12 +108,13 @@ impl SubstrateCli for Cli {
             "polkadot-local" => Box::new(service::chain_spec::polkadot_local_testnet_config()?),
             "polkadot-staging" => Box::new(service::chain_spec::polkadot_staging_testnet_config()?),
             "rococo" => Box::new(service::chain_spec::rococo_config()?),
-            "rococo-opportunity" => Box::new(service::chain_spec::opportunity_config()?),
-            // #[cfg(feature = "rococo-native")]
-            // "rococo-opportunity" => Box::new(service::chain_spec::rococo_opportunity_testnet_config()?),
             #[cfg(feature = "rococo-native")]
-            "rococo-opportunity-local" => {
-                Box::new(service::chain_spec::rococo_opportunity_local_testnet_config()?)
+            "barocco" => Box::new(service::chain_spec::barocco_config()?),
+            #[cfg(feature = "rococo-native")]
+            "barocco-genesis" => Box::new(service::chain_spec::barocco_testnet_config()?),
+            #[cfg(feature = "rococo-native")]
+            "barocco-local" => {
+                Box::new(service::chain_spec::barocco_local_testnet_config()?)
             }
             #[cfg(feature = "rococo-native")]
             "rococo-dev" => Box::new(service::chain_spec::rococo_development_config()?),

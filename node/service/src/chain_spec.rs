@@ -53,7 +53,7 @@ const WESTEND_STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/
 const ROCOCO_STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 const DEFAULT_PROTOCOL_ID: &str = "dot";
 #[cfg(feature = "rococo-native")]
-const OPPORTUNITY_PROTOCOL_ID: &str = "opportunity";
+const BAROCCO_PROTOCOL_ID: &str = "barocco";
 
 /// Node `ChainSpec` extensions.
 ///
@@ -138,8 +138,8 @@ pub fn rococo_config() -> Result<RococoChainSpec, String> {
     RococoChainSpec::from_json_bytes(&include_bytes!("../res/rococo.json")[..])
 }
 
-pub fn opportunity_config() -> Result<RococoChainSpec, String> {
-    RococoChainSpec::from_json_bytes(&include_bytes!("../res/rococo-opportunity.json")[..])
+pub fn barocco_config() -> Result<RococoChainSpec, String> {
+    RococoChainSpec::from_json_bytes(&include_bytes!("../res/barocco.json")[..])
 }
 
 /// This is a temporary testnet that uses the same runtime as rococo.
@@ -1175,15 +1175,15 @@ pub fn rococo_staging_testnet_config() -> Result<RococoChainSpec, String> {
     ))
 }
 
-/// Rococo Opportunity testnet config.
+/// Rococo Barocco testnet config.
 #[cfg(feature = "rococo-native")]
-pub fn rococo_opportunity_testnet_config() -> Result<RococoChainSpec, String> {
+pub fn barocco_testnet_config() -> Result<RococoChainSpec, String> {
     let wasm_binary = rococo::WASM_BINARY.ok_or("Rococo development wasm not available")?;
     let boot_nodes = vec![];
 
     Ok(RococoChainSpec::from_genesis(
-        "Rococo Opportunity Testnet",
-        "rococo_opportunity_testnet",
+        "Barocco Testnet",
+        "barocco_testnet",
         ChainType::Live,
         move || RococoGenesisExt {
             runtime_genesis_config: rococo_staging_testnet_config_genesis(wasm_binary),
@@ -1194,20 +1194,20 @@ pub fn rococo_opportunity_testnet_config() -> Result<RococoChainSpec, String> {
             TelemetryEndpoints::new(vec![(ROCOCO_STAGING_TELEMETRY_URL.to_string(), 0)])
                 .expect("Rococo Staging telemetry url is valid; qed"),
         ),
-        Some(OPPORTUNITY_PROTOCOL_ID),
+        Some(BAROCCO_PROTOCOL_ID),
         None,
         Default::default(),
     ))
 }
 
-/// Rococo Opportunity local testnet config (multivalidator Alice + Bob)
+/// Barocco local testnet config (multivalidator Alice + Bob)
 #[cfg(feature = "rococo-native")]
-pub fn rococo_opportunity_local_testnet_config() -> Result<RococoChainSpec, String> {
+pub fn barocco_local_testnet_config() -> Result<RococoChainSpec, String> {
     let wasm_binary = rococo::WASM_BINARY.ok_or("Rococo development wasm not available")?;
 
     Ok(RococoChainSpec::from_genesis(
-        "Rococo Opportunity Local Testnet",
-        "rococo_opportunity_local_testnet",
+        "Barocco Local Testnet",
+        "barocco_local_testnet",
         ChainType::Local,
         move || RococoGenesisExt {
             runtime_genesis_config: rococo_local_testnet_genesis(wasm_binary),
@@ -1216,7 +1216,7 @@ pub fn rococo_opportunity_local_testnet_config() -> Result<RococoChainSpec, Stri
         },
         vec![],
         None,
-        Some(OPPORTUNITY_PROTOCOL_ID),
+        Some(BAROCCO_PROTOCOL_ID),
         None,
         Default::default(),
     ))
