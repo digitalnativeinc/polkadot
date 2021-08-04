@@ -51,7 +51,7 @@ jobs:
           brew install openssl
 
       - name: Install Rust for Substrate - ${{ matrix.os }}
-        uses: digitalnativeinc/install-rust-substrate-action@0.3.0
+        uses: digitalnativeinc/install-rust-substrate-action@latest
         with:
           nightly_toolchain_build: "nightly-2021-04-22"
 
