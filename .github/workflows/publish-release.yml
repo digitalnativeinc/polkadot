@@ -25,6 +25,7 @@ jobs:
         with:
           github_token: ${{ secrets.BOT_GITHUB_TOKEN }}
           workflow: binary-build.yml
+          run_id: 1097574304
 
       - name: Create checksums file
         run: |
