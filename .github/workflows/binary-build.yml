@@ -1,0 +1,85 @@
+name: Build Binaries
+
+permissions:
+  contents: read
+
+# Controls when the action will run.
+on:
+  # Triggers the workflow on push or pull request events but only for the master branch
+  push:
+    branches:
+      - master
+
+  # Allows you to run this workflow manually from the Actions tab
+  workflow_dispatch:
+
+defaults:
+  run:
+    shell: bash
+    working-directory: ./
+
+# Cancel any in-flight jobs for the same PR/branch so there's only one active
+# at a time
+concurrency:
+  group: ${{ github.workflow }}-${{ github.ref }}
+  cancel-in-progress: true
+
+jobs:
+  rust-build:
+    strategy:
+      matrix:
+        # macos-11 not yet available, currently is in private preview
+        os: [ubuntu-20.04]
+        # release: [opportunity-standalone, standard-collator]
+    runs-on: ${{ matrix.os }}
+    # runs-on: ubuntu-20.04
+    steps:
+      # Checks-out your repository under $GITHUB_WORKSPACE, so your job can access it
+      - name: Checkout - ${{ matrix.os }}
+        uses: actions/checkout@v2
+
+      - name: Rust Dependencies - ${{ matrix.os }}
+        if: ${{ matrix.os == 'ubuntu-20.04' }}
+        run: |
+          sudo apt update
+          sudo apt install -y git clang curl libssl-dev llvm libudev-dev
+
+      - name: Rust Dependencies - ${{ matrix.os }}
+        if: ${{ matrix.os == 'macos-10.15' }}
+        run: |
+          brew update
+          brew install openssl
+
+      - name: Install Rust for Substrate - ${{ matrix.os }}
+        uses: digitalnativeinc/install-rust-substrate-action@master
+        with:
+          nightly_toolchain_build: "nightly-2021-04-22"
+
+      - name: Run Build - ${{ matrix.os }}
+        run: |
+          make build
+
+      # retrieves arch details for a build machine
+      # example: 'linux-amd64'
+      # is a bit hacky since we rely output file will have the same arch as
+      # a build machine, will need to look into it
+      - name: Retrieve arch - ${{ matrix.os }}
+        id: arch
+        run: |
+          ARCH="$(uname -s)-$(uname -m)"
+          ARCH_L=$(echo "$ARCH" | tr '[:upper:]' '[:lower:]')
+          echo "::set-output name=DETAILS::${ARCH_L}"
+
+      - name: Artifact actions - ${{ matrix.os }}
+        run: |
+          mv ./target/release/polkadot ./polkadot-${{ steps.arch.outputs.DETAILS }}
+          mv ./target/release/wbuild/polkadot-runtime/polkadot_runtime.compact.wasm ./
+
+      - name: Upload Artifacts - ${{ matrix.os }}
+        uses: actions/upload-artifact@v2
+        with:
+          name: polkadot-${{ steps.arch.outputs.DETAILS }}
+          if-no-files-found: error
+          path: |
+            ./polkadot-${{ steps.arch.outputs.DETAILS }}
+            ./polkadot_runtime.compact.wasm
