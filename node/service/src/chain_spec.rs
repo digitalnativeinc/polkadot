@@ -52,6 +52,8 @@ const WESTEND_STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/
 #[cfg(feature = "rococo-native")]
 const ROCOCO_STAGING_TELEMETRY_URL: &str = "wss://telemetry.polkadot.io/submit/";
 const DEFAULT_PROTOCOL_ID: &str = "dot";
+#[cfg(feature = "rococo-native")]
+const BAROCCO_PROTOCOL_ID: &str = "barocco";
 
 /// Node `ChainSpec` extensions.
 ///
@@ -137,6 +139,10 @@ pub fn westend_config() -> Result<WestendChainSpec, String> {
 
 pub fn rococo_config() -> Result<RococoChainSpec, String> {
 	RococoChainSpec::from_json_bytes(&include_bytes!("../res/rococo.json")[..])
+}
+
+pub fn barocco_config() -> Result<RococoChainSpec, String> {
+    RococoChainSpec::from_json_bytes(&include_bytes!("../res/barocco.json")[..])
 }
 
 /// This is a temporary testnet that uses the same runtime as rococo.
@@ -1080,6 +1086,61 @@ pub fn rococo_staging_testnet_config() -> Result<RococoChainSpec, String> {
 		None,
 		Default::default(),
 	))
+}
+
+/// Rococo Barocco testnet config.
+#[cfg(feature = "rococo-native")]
+pub fn barocco_testnet_config() -> Result<RococoChainSpec, String> {
+    let wasm_binary = rococo::WASM_BINARY.ok_or("Rococo development wasm not available")?;
+    let boot_nodes = vec![];
+
+    Ok(RococoChainSpec::from_genesis(
+        "Barocco Testnet",
+        "barocco_testnet",
+        ChainType::Live,
+        move || RococoGenesisExt {
+            runtime_genesis_config: rococo_testnet_genesis(
+                wasm_binary,
+                vec![
+                    get_authority_keys_from_seed("Alice"),
+                    get_authority_keys_from_seed("Bob"),
+                ],
+                get_account_id_from_seed::<sr25519::Public>("Alice"),
+                None,
+            ),
+            session_length_in_blocks: Some(100),
+        },
+        boot_nodes,
+        Some(
+            TelemetryEndpoints::new(vec![(ROCOCO_STAGING_TELEMETRY_URL.to_string(), 0)])
+                .expect("Rococo Staging telemetry url is valid; qed"),
+        ),
+        Some(BAROCCO_PROTOCOL_ID),
+        None,
+        Default::default(),
+    ))
+}
+
+/// Barocco local testnet config (multivalidator Alice + Bob)
+#[cfg(feature = "rococo-native")]
+pub fn barocco_local_testnet_config() -> Result<RococoChainSpec, String> {
+    let wasm_binary = rococo::WASM_BINARY.ok_or("Rococo development wasm not available")?;
+
+    Ok(RococoChainSpec::from_genesis(
+        "Barocco Local Testnet",
+        "barocco_local_testnet",
+        ChainType::Local,
+        move || RococoGenesisExt {
+            runtime_genesis_config: rococo_local_testnet_genesis(wasm_binary),
+            // Use 1 minute session length.
+            session_length_in_blocks: Some(10),
+        },
+        vec![],
+        None,
+        Some(BAROCCO_PROTOCOL_ID),
+        None,
+        Default::default(),
+    ))
 }
 
 /// Helper function to generate a crypto pair from seed

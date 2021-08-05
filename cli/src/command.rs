@@ -88,6 +88,18 @@ impl SubstrateCli for Cli {
 			"polkadot-dev" | "dev" => Box::new(service::chain_spec::polkadot_development_config()?),
 			"polkadot-local" => Box::new(service::chain_spec::polkadot_local_testnet_config()?),
 			"polkadot-staging" => Box::new(service::chain_spec::polkadot_staging_testnet_config()?),
+			"barocco" => Box::new(service::chain_spec::barocco_config()?),
+			#[cfg(feature = "rococo-native")]
+			"barocco-testnet" => Box::new(service::chain_spec::barocco_testnet_config()?),
+			#[cfg(feature = "rococo-native")]
+			"barocco-local" => {
+					Box::new(service::chain_spec::barocco_local_testnet_config()?)
+			},
+			#[cfg(not(feature = "rococo-native"))]
+			name if name.starts_with("barocco-") => Err(format!(
+					"`{}` only supported with `rococo-native` feature enabled.",
+					name
+			))?,
 			"rococo" => Box::new(service::chain_spec::rococo_config()?),
 			#[cfg(feature = "rococo-native")]
 			"rococo-dev" => Box::new(service::chain_spec::rococo_development_config()?),
